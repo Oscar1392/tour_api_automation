@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
 import * as supertest from "supertest";
+import { User } from "../helper/interface";
 
 const request = supertest('http://localhost:8002/api/v1/users');
 
@@ -17,16 +18,17 @@ export function logIn(user:{
     });
 }
 
-export function getUser(role:string) {
+export function getUser(role:string, overrides: Partial<User> = {}): User {
     const randomUser = createRandomUser();
     const password = "Test12345";
-    return {
+    const baseUser: User = {
         name: randomUser.username,
         email: randomUser.email,
         password: password,
         passwordConfirm: password,
         role: role
     }
+    return { ...baseUser, ...overrides };
 }
 
 export function createRandomUser() {
@@ -37,3 +39,25 @@ export function createRandomUser() {
     }
 };
 
+export function deleteUser(cookie:string){
+    return request.delete('/deleteMe').set('Cookie', cookie);
+}
+
+export async function updateUser(updateData: Partial<User>, token: string){
+    const res = await request.patch('/updateMe')
+    .set('Authorization', `Bearer ${token}`)
+    .send(updateData)
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('success');
+    return res.body.data.user;
+}
+
+export async function uploadUserPhoto(filePath: string, token: string) {
+    const res = await request
+    .patch('/updateMe')
+    .set('Authorization', `Bearer ${token}`)
+    .attach('photo', filePath);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('success');
+    return res.body.data.user.photo;
+}
